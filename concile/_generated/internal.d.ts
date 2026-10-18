@@ -16,4 +16,7 @@ export type Internal = {
   "messages": {
 
   };
+  "session": {
+
+  };
 };

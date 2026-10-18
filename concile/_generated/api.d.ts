@@ -17,6 +17,9 @@ export type Api = {
     list: FunctionReference<"query", "public", any, any>;
     send: FunctionReference<"mutation", "public", { author: string; body: string }, any>;
   };
+  "session": {
+    whoami: FunctionReference<"query", "public", {}, (string | null)>;
+  };
 };
 
 export type UdfPathOf<A> = {

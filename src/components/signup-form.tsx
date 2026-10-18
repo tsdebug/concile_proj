@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from "react"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
@@ -11,15 +12,41 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+type SignupFormProps = Omit<React.ComponentProps<"div">, "onSubmit"> & {
+  onSubmit: (email: string, password: string) => void
+  onSwitch: () => void
+  error?: string | null
+  pending?: boolean
+}
+
 export function SignupForm({
   className,
+  onSubmit,
+  onSwitch,
+  error,
+  pending,
   ...props
-}: React.ComponentProps<"div">) {
+}: SignupFormProps) {
+  const [mismatch, setMismatch] = useState(false)
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const password = String(data.get("password"))
+    if (password !== String(data.get("confirm-password"))) {
+      setMismatch(true)
+      return
+    }
+    setMismatch(false)
+    onSubmit(String(data.get("email")), password)
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -30,18 +57,16 @@ export function SignupForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                <Input id="name" type="text" placeholder="John Doe" required />
-              </Field>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="m@example.com"
+                  autoComplete="email"
                   required
                 />
               </Field>
@@ -49,13 +74,27 @@ export function SignupForm({
                 <Field className="grid grid-cols-2 gap-4">
                   <Field>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" type="password" required />
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                    />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="confirm-password">
                       Confirm Password
                     </FieldLabel>
-                    <Input id="confirm-password" type="password" required />
+                    <Input
+                      id="confirm-password"
+                      name="confirm-password"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                    />
                   </Field>
                 </Field>
                 <FieldDescription>
@@ -63,19 +102,28 @@ export function SignupForm({
                 </FieldDescription>
               </Field>
               <Field>
-                <Button type="submit">Create Account</Button>
+                {mismatch && <FieldError>Passwords do not match.</FieldError>}
+                {error && <FieldError>{error}</FieldError>}
+                <Button type="submit" disabled={pending}>
+                  {pending ? "Creating account..." : "Create Account"}
+                </Button>
                 <FieldDescription className="text-center">
-                  Already have an account? <a href="#">Sign in</a>
+                  Already have an account?{" "}
+                  <a
+                    href="#"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      onSwitch()
+                    }}
+                  >
+                    Sign in
+                  </a>
                 </FieldDescription>
               </Field>
             </FieldGroup>
           </form>
         </CardContent>
       </Card>
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription>
     </div>
   )
 }
