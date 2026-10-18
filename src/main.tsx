@@ -1,18 +1,20 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { ConcileClient, webSocketTransport } from "@concile/client";
-import { ConcileProvider } from "@concile/client/react";
-import { App } from "./App";
-import "./index.css";
-
-// The @concile/vite plugin serves the backend on this page's own address. VITE_CONCILE_URL overrides it.
-const url = import.meta.env.VITE_CONCILE_URL ?? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/sync`;
-const client = new ConcileClient(webSocketTransport(url));
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
+import { ConcileProvider } from "@concile/client/react"
+import { App } from "./App"
+import { AuthGate } from "@/auth/AuthGate"
+import { AuthProvider } from "@/auth/AuthProvider"
+import { client } from "@/lib/concile"
+import "./index.css"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConcileProvider client={client}>
-      <App />
+      <AuthProvider>
+        <AuthGate>
+          <App />
+        </AuthGate>
+      </AuthProvider>
     </ConcileProvider>
   </StrictMode>,
-);
+)
