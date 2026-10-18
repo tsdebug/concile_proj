@@ -30,12 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     const info = authClient.getSessionInfo()
-    try {
-      if (info) await client.mutation(authApi.signOut, { token: info.token })
-    } finally {
-      authClient.clearSession()
-      setSession(null)
-    }
+    if (info) await client.mutation(authApi.signOut, { token: info.token })
+    authClient.clearSession()
+    setSession(null)
   }
 
   return (

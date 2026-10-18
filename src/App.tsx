@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/auth/AuthProvider"
+import { toast } from "sonner"
 
 export function App() {
   const { session, signOut } = useAuth()
@@ -9,7 +10,11 @@ export function App() {
         <span className="font-semibold">Concile Board</span>
         <div className="flex items-center gap-3">
           <span className="text-muted-foreground text-sm">{session?.userId}</span>
-          <Button variant="outline" size="sm" onClick={() => void signOut()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => signOut().catch(() => toast.error("Sign out failed."))}
+          >
             Sign out
           </Button>
         </div>
