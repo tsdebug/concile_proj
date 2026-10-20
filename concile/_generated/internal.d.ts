@@ -13,6 +13,15 @@ export type FunctionReference<
 };
 
 export type Internal = {
+  "boards": {
+
+  };
+  "cards": {
+
+  };
+  "columns": {
+
+  };
   "messages": {
 
   };
