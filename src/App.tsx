@@ -4,6 +4,7 @@ import type { Id } from "../concile/_generated/dataModel"
 import { api } from "@/lib/concile"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/auth/AuthProvider"
+import { toast } from "sonner"
 
 function BoardDebug({ boardId }: { boardId: Id<"boards"> }) {
   const columns = useQuery(api.columns.list, { boardId })
@@ -67,7 +68,11 @@ export function App() {
 
   // board === null means "loaded, and there is none yet": create it.
   useEffect(() => {
-    if (board === null) void ensureDefault({})
+    if (board === null) {
+      ensureDefault({}).catch((err) =>
+        toast.error(err instanceof Error ? err.message : "Could not create your board."),
+      )
+    }
   }, [board])
 
   return (
@@ -76,7 +81,11 @@ export function App() {
         <span className="font-semibold">Concile Board (backend test)</span>
         <div className="flex items-center gap-3">
           <span className="text-muted-foreground text-sm">{session?.userId}</span>
-          <Button variant="outline" size="sm" onClick={() => void signOut()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => signOut().catch(() => toast.error("Sign out failed."))}
+          >
             Sign out
           </Button>
         </div>
