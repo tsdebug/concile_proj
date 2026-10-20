@@ -6,7 +6,9 @@ import type { Id, TableNames } from "./dataModel";
  *  `concile dev`/`concile codegen` against the live deployment lineage — the server
  *  validates every client-minted id at insert, so a stale map fails loudly, never silently. */
 export const tableNumbers = {
-  "messages": 10001,
+  "boards": 10001,
+  "cards": 10003,
+  "columns": 10002,
 } as const;
 
 /** Mint a REAL id client-side (same format and entropy as server minting). Mint at
