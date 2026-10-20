@@ -3,7 +3,9 @@ import type { GenericId } from "@concile/values";
 
 export interface DataModel {
   _storage: { document: { _id: Id<"_storage">; _creationTime: number; status: ("pending" | "ready"); key: string; size: (number | null); contentType: (string | null); sha256: (string | null); visibility: ("private" | "public"); expiresAt: (number | null) } };
-  messages: { document: { _id: Id<"messages">; _creationTime: number; author: string; body: string } };
+  boards: { document: { _id: Id<"boards">; _creationTime: number; ownerId: string; name: string } };
+  columns: { document: { _id: Id<"columns">; _creationTime: number; boardId: Id<"boards">; ownerId: string; name: string; position: number } };
+  cards: { document: { _id: Id<"cards">; _creationTime: number; boardId: Id<"boards">; columnId: Id<"columns">; ownerId: string; title: string; description: string; position: number } };
 }
 
 export type TableNames = keyof DataModel;
