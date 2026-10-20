@@ -13,6 +13,23 @@ export type FunctionReference<
 };
 
 export type Api = {
+  "boards": {
+    ensureDefault: FunctionReference<"mutation", "public", {}, Id<"boards">>;
+    getMine: FunctionReference<"query", "public", {}, ({ _id: Id<"boards">; _creationTime: number; ownerId: string; name: string } | null)>;
+  };
+  "cards": {
+    create: FunctionReference<"mutation", "public", { boardId: Id<"boards">; columnId: Id<"columns">; title: string; description?: string; position?: number }, Id<"cards">>;
+    list: FunctionReference<"query", "public", { boardId: Id<"boards"> }, Array<{ _id: Id<"cards">; _creationTime: number; boardId: Id<"boards">; columnId: Id<"columns">; ownerId: string; title: string; description: string; position: number }>>;
+    move: FunctionReference<"mutation", "public", { cardId: Id<"cards">; columnId: Id<"columns">; position: number }, null>;
+    remove: FunctionReference<"mutation", "public", { cardId: Id<"cards"> }, null>;
+    update: FunctionReference<"mutation", "public", { cardId: Id<"cards">; title: string; description: string }, null>;
+  };
+  "columns": {
+    create: FunctionReference<"mutation", "public", { boardId: Id<"boards">; name: string; position?: number }, Id<"columns">>;
+    list: FunctionReference<"query", "public", { boardId: Id<"boards"> }, Array<{ _id: Id<"columns">; _creationTime: number; boardId: Id<"boards">; ownerId: string; name: string; position: number }>>;
+    remove: FunctionReference<"mutation", "public", { columnId: Id<"columns"> }, null>;
+    rename: FunctionReference<"mutation", "public", { columnId: Id<"columns">; name: string }, null>;
+  };
   "messages": {
     list: FunctionReference<"query", "public", any, any>;
     send: FunctionReference<"mutation", "public", { author: string; body: string }, any>;
