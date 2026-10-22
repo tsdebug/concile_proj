@@ -1,60 +1,183 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef } from "react"
 import { useMutation, useQuery } from "@concile/client/react"
-import type { Id } from "../concile/_generated/dataModel"
-import { api } from "@/lib/concile"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/auth/AuthProvider"
+import {
+  ArrowLeft,
+  ArrowRight,
+  LayoutDashboard,
+  LogOut,
+} from "lucide-react"
 import { toast } from "sonner"
 
+import { useAuth } from "@/auth/AuthProvider"
 import { Board } from "@/board/Board"
+import { Button } from "@/components/ui/button"
+import { api } from "@/lib/concile"
 
 export function App() {
-  const { session, signOut } = useAuth()
+  const { signOut } = useAuth()
+
   const ensureDefault = useMutation(api.boards.ensureDefault)
   const board = useQuery(api.boards.getMine, {})
 
-  // board === null means "loaded, and there is none yet": create it.
+  const boardSurface = useRef<HTMLDivElement>(null)
+  const creatingBoard = useRef(false)
+
   useEffect(() => {
-    if (board === null) {
-      ensureDefault({}).catch((err) =>
-        toast.error(err instanceof Error ? err.message : "Could not create your board."),
+    if (board !== null || creatingBoard.current) return
+
+    creatingBoard.current = true
+
+    void ensureDefault({})
+      .catch((error: unknown) => {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Could not create your board.",
+        )
+      })
+      .finally(() => {
+        creatingBoard.current = false
+      })
+  }, [board, ensureDefault])
+
+  function scrollBoard(direction: "left" | "right") {
+    const viewport =
+      boardSurface.current?.querySelector<HTMLElement>(
+        "[data-radix-scroll-area-viewport]",
       )
-    }
-  }, [board])
+
+    if (!viewport) return
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+
+    viewport.scrollBy({
+      left: direction === "left" ? -340 : 340,
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    })
+  }
 
   return (
-    <div className="min-h-svh bg-stone-50/70 dark:bg-background">
-      <header className="flex items-center justify-between gap-4 border-b border-border bg-background px-4 py-3 sm:px-6">
-        <span className="shrink-0 text-sm font-semibold tracking-tight">
-          CONCILE BOARD
-        </span>
+    <div className="workspace-page min-h-svh text-foreground">
+      <header className="workspace-header border-b">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-8">
+          <div className="flex items-center gap-2.5">
+            <div className="workspace-brand-mark flex size-9 items-center justify-center rounded-xl border">
+              <LayoutDashboard
+                className="size-4"
+                aria-hidden="true"
+              />
+            </div>
 
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="hidden max-w-48 truncate text-xs text-muted-foreground sm:block">
-            {session?.userId}
-          </span>
+            <span className="text-sm font-semibold tracking-tight">
+              Concile
+            </span>
+          </div>
 
           <Button
-            variant="outline"
+            type="button"
+            variant="ghost"
             size="sm"
-            className="shrink-0 rounded-lg"
+            className="gap-2 rounded-lg text-muted-foreground hover:text-foreground"
             onClick={() =>
-              signOut().catch(() => toast.error("Sign out failed."))
+              signOut().catch(() => {
+                toast.error("Sign out failed.")
+              })
             }
           >
+            <LogOut className="size-3.5" aria-hidden="true" />
             Sign out
           </Button>
         </div>
       </header>
 
-      <main className="min-w-0 p-4 sm:p-6">
-        {board ? (
-          <Board boardId={board._id} />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Setting up your board...
+      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-8 sm:py-8">
+        <section aria-labelledby="workspace-title">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">
+                Your workspace
+              </p>
+
+              <h1
+                id="workspace-title"
+                className="text-2xl font-semibold tracking-tight sm:text-3xl"
+              >
+                {board?.name ?? "My Board"}
+              </h1>
+
+              <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+                A little space for plans, progress, and things worth
+                finishing.
+              </p>
+            </div>
+
+            <div
+              role="group"
+              aria-label="Scroll board"
+              className="flex items-center gap-2"
+            >
+              <span className="mr-1 hidden text-xs text-muted-foreground sm:inline">
+                Make room for what’s next
+              </span>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Scroll board left"
+                title="Scroll board left"
+                disabled={!board}
+                className="workspace-scroll-button size-9 rounded-xl shadow-none"
+                onClick={() => scrollBoard("left")}
+              >
+                <ArrowLeft className="size-4" aria-hidden="true" />
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Scroll board right"
+                title="Scroll board right"
+                disabled={!board}
+                className="workspace-scroll-button size-9 rounded-xl shadow-none"
+                onClick={() => scrollBoard("right")}
+              >
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+
+          <div
+            ref={boardSurface}
+            className="board-surface min-w-0 rounded-3xl border p-3 sm:p-5"
+          >
+            {board ? (
+              <Board boardId={board._id} />
+            ) : (
+              <div
+                role="status"
+                className="flex min-h-80 items-center justify-center"
+              >
+                <div className="space-y-2 text-center">
+                  <p className="text-sm font-medium">
+                    Getting your space ready
+                  </p>
+
+                  <p className="text-xs text-muted-foreground">
+                    Your board will appear here shortly.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <p className="mt-3 px-1 text-xs text-muted-foreground">
+            Small steps count. Move things along at your own pace.
           </p>
-        )}
+        </section>
       </main>
     </div>
   )
