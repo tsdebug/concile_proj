@@ -129,3 +129,85 @@
     @apply font-sans;
     }
 }
+
+/* Workspace shell */
+
+.workspace-page {
+  background-color: #faf8f5;
+}
+
+.workspace-header {
+  background-color: #fffdfb;
+  border-color: #e7e2db;
+}
+
+.workspace-brand-mark {
+  background-color: #eaf2e8;
+  border-color: #cbd9c7;
+  color: #465c40;
+}
+
+.workspace-scroll-button {
+  background-color: #fffdfb;
+  border-color: #ded8d0;
+}
+
+.workspace-scroll-button:hover {
+  background-color: #f0ece6;
+}
+
+.board-surface {
+  background-color: #f2efe9;
+  border-color: #ded8cf;
+  box-shadow: 0 2px 0 rgb(52 43 32 / 4%);
+}
+
+/* Hide the board's custom horizontal scrollbar.
+   Keep the ScrollBar component mounted in Board.tsx. */
+
+.board-surface [data-orientation="horizontal"] {
+  display: none !important;
+}
+
+/* Also hide any native scrollbar on the board viewport. */
+
+.board-surface [data-radix-scroll-area-viewport] {
+  scrollbar-width: none;
+}
+
+.board-surface
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none;
+}
+
+/* Dark theme */
+
+.dark .workspace-page {
+  background-color: #18191b;
+}
+
+.dark .workspace-header {
+  background-color: #1d1e20;
+  border-color: #343539;
+}
+
+.dark .workspace-brand-mark {
+  background-color: #29372c;
+  border-color: #405544;
+  color: #c2d8bd;
+}
+
+.dark .workspace-scroll-button {
+  background-color: #252629;
+  border-color: #424349;
+}
+
+.dark .workspace-scroll-button:hover {
+  background-color: #303136;
+}
+
+.dark .board-surface {
+  background-color: #202124;
+  border-color: #3c3d42;
+  box-shadow: none;
+}
