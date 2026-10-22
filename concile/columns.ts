@@ -110,3 +110,37 @@ export const remove = mutation({
         return null;
     },
 });
+
+export const move = mutation({
+  args: {
+    columnId: v.id("columns"),
+    position: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { columnId, position }) => {
+    const ownerId = await ctx.auth.getUserId()
+
+    if (!ownerId) {
+      throw new Error("You must be signed in.")
+    }
+
+    if (!Number.isFinite(position)) {
+      throw new Error("Invalid column position.")
+    }
+
+    const column = await ctx.db.get(columnId)
+
+    if (!column || column.ownerId !== ownerId) {
+      throw new Error("Column not found.")
+    }
+
+    await ctx.db.replace(columnId, {
+      boardId: column.boardId,
+      ownerId: column.ownerId,
+      name: column.name,
+      position,
+    })
+
+    return null
+  },
+})
