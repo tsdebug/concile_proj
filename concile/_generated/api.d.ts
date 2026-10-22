@@ -27,6 +27,7 @@ export type Api = {
   "columns": {
     create: FunctionReference<"mutation", "public", { boardId: Id<"boards">; name: string; position?: number }, Id<"columns">>;
     list: FunctionReference<"query", "public", { boardId: Id<"boards"> }, Array<{ _id: Id<"columns">; _creationTime: number; boardId: Id<"boards">; ownerId: string; name: string; position: number }>>;
+    move: FunctionReference<"mutation", "public", { columnId: Id<"columns">; position: number }, null>;
     remove: FunctionReference<"mutation", "public", { columnId: Id<"columns"> }, null>;
     rename: FunctionReference<"mutation", "public", { columnId: Id<"columns">; name: string }, null>;
   };
