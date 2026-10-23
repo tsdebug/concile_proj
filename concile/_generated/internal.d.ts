@@ -25,6 +25,9 @@ export type Internal = {
   "messages": {
 
   };
+  "profiles": {
+
+  };
   "session": {
 
   };
