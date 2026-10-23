@@ -31,4 +31,7 @@ export type Internal = {
   "session": {
 
   };
+  "sharing": {
+
+  };
 };
