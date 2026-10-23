@@ -13,11 +13,27 @@ import { Board } from "@/board/Board"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/concile"
 
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length === 0) return "?"
+
+  if (parts.length === 1) {
+    return Array.from(parts[0]!)[0]!.toLocaleUpperCase()
+  }
+
+  const first = Array.from(parts[0]!)[0] ?? ""
+  const last = Array.from(parts[parts.length - 1]!)[0] ?? ""
+
+  return `${first}${last}`.toLocaleUpperCase()
+}
+
 export function App() {
   const { signOut } = useAuth()
 
   const ensureDefault = useMutation(api.boards.ensureDefault)
   const board = useQuery(api.boards.getMine, {})
+  const profile = useQuery(api.profiles.getMine, {})
 
   const boardSurface = useRef<HTMLDivElement>(null)
   const creatingBoard = useRef(false)
@@ -58,6 +74,8 @@ export function App() {
     })
   }
 
+  const displayName = profile?.displayName ?? "you"
+
   return (
     <div className="workspace-page min-h-svh text-foreground">
       <header className="workspace-header border-b">
@@ -75,41 +93,59 @@ export function App() {
             </span>
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="gap-2 rounded-lg text-muted-foreground hover:text-foreground"
-            onClick={() =>
-              signOut().catch(() => {
-                toast.error("Sign out failed.")
-              })
-            }
-          >
-            <LogOut className="size-3.5" aria-hidden="true" />
-            Sign out
-          </Button>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <div
+                aria-hidden="true"
+                className="workspace-brand-mark flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
+              >
+                {getInitials(displayName)}
+              </div>
+
+              <span className="hidden max-w-40 truncate text-sm text-muted-foreground sm:block">
+                {displayName}
+              </span>
+            </div>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0 gap-2 rounded-lg text-muted-foreground hover:text-foreground"
+              onClick={() =>
+                signOut().catch(() => {
+                  toast.error("Sign out failed.")
+                })
+              }
+            >
+              <LogOut
+                className="size-3.5"
+                aria-hidden="true"
+              />
+              Sign out
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-8 sm:py-8">
         <section aria-labelledby="workspace-title">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
-                Your workspace
+            <div className="min-w-0 space-y-1.5">
+              <p className="break-words text-sm text-muted-foreground">
+                Hey, {displayName} 
               </p>
 
               <h1
                 id="workspace-title"
-                className="text-2xl font-semibold tracking-tight sm:text-3xl"
+                className="break-words text-2xl font-semibold tracking-tight sm:text-3xl"
               >
                 {board?.name ?? "My Board"}
               </h1>
 
               <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                A little space for plans, progress, and things worth
-                finishing.
+                Your little space for plans, progress, and things
+                worth finishing.
               </p>
             </div>
 
@@ -132,7 +168,10 @@ export function App() {
                 className="workspace-scroll-button size-9 rounded-xl shadow-none"
                 onClick={() => scrollBoard("left")}
               >
-                <ArrowLeft className="size-4" aria-hidden="true" />
+                <ArrowLeft
+                  className="size-4"
+                  aria-hidden="true"
+                />
               </Button>
 
               <Button
@@ -145,7 +184,10 @@ export function App() {
                 className="workspace-scroll-button size-9 rounded-xl shadow-none"
                 onClick={() => scrollBoard("right")}
               >
-                <ArrowRight className="size-4" aria-hidden="true" />
+                <ArrowRight
+                  className="size-4"
+                  aria-hidden="true"
+                />
               </Button>
             </div>
           </div>
