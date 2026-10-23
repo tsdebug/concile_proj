@@ -35,6 +35,10 @@ export type Api = {
     list: FunctionReference<"query", "public", any, any>;
     send: FunctionReference<"mutation", "public", { author: string; body: string }, any>;
   };
+  "profiles": {
+    getMine: FunctionReference<"query", "public", {}, ({ displayName: string } | null)>;
+    save: FunctionReference<"mutation", "public", { displayName: string }, null>;
+  };
   "session": {
     whoami: FunctionReference<"query", "public", {}, (string | null)>;
   };
