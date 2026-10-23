@@ -11,6 +11,13 @@ export default defineSchema({
     name: v.string(),
   }).index("by_owner", ["ownerId"]),
 
+  boardShares: defineTable({
+    boardId: v.id("boards"),
+    token: v.string(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_token", ["token"]),
+
   columns: defineTable({
     boardId: v.id("boards"),
     ownerId: v.string(),

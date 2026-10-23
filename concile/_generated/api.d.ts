@@ -42,6 +42,12 @@ export type Api = {
   "session": {
     whoami: FunctionReference<"query", "public", {}, (string | null)>;
   };
+  "sharing": {
+    disable: FunctionReference<"mutation", "public", { boardId: Id<"boards"> }, null>;
+    enable: FunctionReference<"mutation", "public", { boardId: Id<"boards">; token: string; replace: boolean }, string>;
+    getBoard: FunctionReference<"query", "public", { token: string }, ({ name: string; ownerName: string; columns: Array<{ _id: Id<"columns">; name: string; position: number }>; cards: Array<{ _id: Id<"cards">; columnId: Id<"columns">; title: string; description: string; position: number }> } | null)>;
+    getMine: FunctionReference<"query", "public", { boardId: Id<"boards"> }, ({ token: string } | null)>;
+  };
 };
 
 export type UdfPathOf<A> = {
