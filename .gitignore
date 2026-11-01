@@ -2,3 +2,5 @@ node_modules
 dist
 .concile/
 .env.local
+
+data/
