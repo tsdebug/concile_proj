@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useMutation, useQuery } from "@concile/client/react"
 import type { Id } from "../../concile/_generated/dataModel"
 import { Copy, Link2 } from "lucide-react"
@@ -32,6 +32,56 @@ function makeShareUrl(token: string) {
   return url.toString()
 }
 
+function ShareRolePicker({
+  role,
+  onChange,
+}: {
+  role: "viewer" | "editor"
+  onChange: (role: "viewer" | "editor") => void
+}) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">
+        People with the link can
+      </legend>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex cursor-pointer items-start gap-2 rounded-xl border p-3 text-sm">
+          <input
+            type="radio"
+            name="share-role"
+            value="viewer"
+            checked={role === "viewer"}
+            onChange={() => onChange("viewer")}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block font-medium">View</span>
+            <span className="text-xs text-muted-foreground">
+              Read the board only
+            </span>
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-2 rounded-xl border p-3 text-sm">
+          <input
+            type="radio"
+            name="share-role"
+            value="editor"
+            checked={role === "editor"}
+            onChange={() => onChange("editor")}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block font-medium">Edit</span>
+            <span className="text-xs text-muted-foreground">
+              Change cards and columns
+            </span>
+          </span>
+        </label>
+      </div>
+    </fieldset>
+  )
+}
+
 export function ShareDialog({
   boardId,
   onClose,
@@ -45,6 +95,13 @@ export function ShareDialog({
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [role, setRole] = useState<"viewer" | "editor">("viewer")
+
+  useEffect(() => {
+    if (share && typeof share.role === "string") {
+      setRole(share.role)
+    }
+  }, [share])
 
   const pending = useRef(false)
   const linkInput = useRef<HTMLInputElement>(null)
@@ -67,6 +124,7 @@ export function ShareDialog({
           boardId,
           token: generateToken(),
           replace: action === "replace",
+          role,
         })
 
         toast.success(
@@ -109,9 +167,8 @@ export function ShareDialog({
         <DialogHeader>
           <DialogTitle>Share your board</DialogTitle>
           <DialogDescription>
-            Anyone signed in to this app with the link can view
-            the board, including card descriptions. They cannot
-            edit it.
+            Choose whether anyone signed in to this app with the
+            link can only view the board or edit its cards and columns.
           </DialogDescription>
         </DialogHeader>
 
@@ -121,13 +178,14 @@ export function ShareDialog({
           </p>
         ) : share === null ? (
           <div className="space-y-4 py-2">
+            <ShareRolePicker role={role} onChange={setRole} />
+
             <div className="rounded-xl border border-dashed p-4">
               <p className="text-sm font-medium">
                 Your board is private
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Enable a view-only link when you’re ready to show
-                someone around.
+                Enable a shared link when you’re ready to collaborate.
               </p>
             </div>
 
@@ -143,8 +201,10 @@ export function ShareDialog({
           </div>
         ) : (
           <div className="space-y-4 py-2">
+            <ShareRolePicker role={role} onChange={setRole} />
+
             <div className="space-y-2">
-              <Label htmlFor="board-share-link">View-only link</Label>
+              <Label htmlFor="board-share-link">Board link</Label>
 
               <div className="flex gap-2">
                 <Input
@@ -180,7 +240,7 @@ export function ShareDialog({
                 disabled={busy}
                 onClick={() => changeSharing("replace")}
               >
-                Replace link
+                Replace link & apply role
               </Button>
 
               <Button

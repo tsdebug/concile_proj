@@ -1,5 +1,6 @@
 import { v } from "@concile/values";
 import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 const cardShape = v.object({
   _id: v.id("cards"),
@@ -14,13 +15,21 @@ const cardShape = v.object({
 
 // All cards of a board (the screen groups them by column).
 export const list = query({
-  args: { boardId: v.id("boards") },
+  args: {
+    boardId: v.id("boards"),
+    shareToken: v.optional(v.string()),
+  },
   returns: v.array(cardShape),
-  handler: async (ctx, { boardId }) => {
-    const ownerId = await ctx.auth.getUserId();
-    if (!ownerId) return [];
+  handler: async (ctx, { boardId, shareToken }) => {
+    const userId = await ctx.auth.getUserId();
+    if (!userId) return [];
     const board = await ctx.db.get(boardId);
-    if (!board || board.ownerId !== ownerId) return [];
+    if (!board) return [];
+    if (board.ownerId !== userId) {
+      if (!shareToken) return [];
+      const [share] = await ctx.db.query("boardShares", "by_token").eq("token", shareToken).take(1).collect();
+      if (!share || share.boardId !== boardId) return [];
+    }
     return ctx.db.query("cards", "by_board_position").eq("boardId", boardId).collect();
   },
 });
@@ -33,16 +42,23 @@ export const create = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     position: v.optional(v.number()),
+    shareToken: v.optional(v.string()),
   },
   returns: v.id("cards"),
-  handler: async (ctx, { boardId, columnId, title, description, position }) => {
-    const ownerId = await ctx.auth.getUserId();
-    if (!ownerId) throw new Error("You must be signed in.");
+  handler: async (ctx, { boardId, columnId, title, description, position, shareToken }) => {
+    const userId = await ctx.auth.getUserId();
+    if (!userId) throw new Error("You must be signed in.");
     const board = await ctx.db.get(boardId);
     const column = await ctx.db.get(columnId);
+    let canEdit = board?.ownerId === userId;
+    if (!canEdit && shareToken) {
+      const [share] = await ctx.db.query("boardShares", "by_token").eq("token", shareToken).take(1).collect();
+      canEdit = Boolean(share && share.boardId === boardId && share.role === "editor");
+    }
     if (
-      !board || board.ownerId !== ownerId ||
-      !column || column.ownerId !== ownerId || column.boardId !== boardId
+      !canEdit ||
+      !board ||
+      !column || column.boardId !== boardId
     ) {
       throw new Error("Column not found.");
     }
@@ -65,7 +81,7 @@ export const create = mutation({
     return ctx.db.insert("cards", {
       boardId,
       columnId,
-      ownerId,
+      ownerId: userId,
       title,
       description: description ?? "",
       position: finalPosition,
@@ -75,14 +91,27 @@ export const create = mutation({
 
 // Edits the title and description.
 export const update = mutation({
-  args: { cardId: v.id("cards"), title: v.string(), description: v.string() },
+  args: {
+    cardId: v.id("cards"),
+    title: v.string(),
+    description: v.string(),
+    shareToken: v.optional(v.string()),
+  },
   returns: v.null(),
-  handler: async (ctx, { cardId, title, description }) => {
-    const ownerId = await ctx.auth.getUserId();
-    if (!ownerId) throw new Error("You must be signed in.");
+  handler: async (ctx, { cardId, title, description, shareToken }) => {
+    const userId = await ctx.auth.getUserId();
+    if (!userId) throw new Error("You must be signed in.");
     const card = await ctx.db.get(cardId);
-    if (!card || card.ownerId !== ownerId) return null;
-    await ctx.db.replace(cardId, {
+    if (!card) return null;
+    if (typeof card.boardId !== "string") return null;
+    const board = await ctx.db.get(card.boardId);
+    let canEdit = board?.ownerId === userId;
+    if (!canEdit && shareToken) {
+      const [share] = await ctx.db.query("boardShares", "by_token").eq("token", shareToken).take(1).collect();
+      canEdit = Boolean(share && share.boardId === card.boardId && share.role === "editor");
+    }
+    if (!canEdit) return null;
+    await ctx.db.replace(cardId as Id<"cards">, {
       boardId: card.boardId,
       columnId: card.columnId,
       ownerId: card.ownerId,
@@ -96,20 +125,32 @@ export const update = mutation({
 
 // Moves a card to a column and position (this is what drag and drop will call).
 export const move = mutation({
-  args: { cardId: v.id("cards"), columnId: v.id("columns"), position: v.number() },
+  args: {
+    cardId: v.id("cards"),
+    columnId: v.id("columns"),
+    position: v.number(),
+    shareToken: v.optional(v.string()),
+  },
   returns: v.null(),
-  handler: async (ctx, { cardId, columnId, position }) => {
-    const ownerId = await ctx.auth.getUserId();
-    if (!ownerId) throw new Error("You must be signed in.");
+  handler: async (ctx, { cardId, columnId, position, shareToken }) => {
+    const userId = await ctx.auth.getUserId();
+    if (!userId) throw new Error("You must be signed in.");
     const card = await ctx.db.get(cardId);
-    const column = await ctx.db.get(columnId);
+    const column = await ctx.db.get(columnId as Id<"columns">);
+    if (!card || !column) return null;
+    if (typeof card.boardId !== "string" || typeof column.boardId !== "string") return null;
+    const board = await ctx.db.get(card.boardId);
+    let canEdit = board?.ownerId === userId;
+    if (!canEdit && shareToken) {
+      const [share] = await ctx.db.query("boardShares", "by_token").eq("token", shareToken).take(1).collect();
+      canEdit = Boolean(share && share.boardId === card.boardId && share.role === "editor");
+    }
     if (
-      !card || card.ownerId !== ownerId ||
-      !column || column.ownerId !== ownerId || column.boardId !== card.boardId
+      !canEdit || column.boardId !== card.boardId
     ) {
       return null; // card or column vanished or isn't yours: do nothing
     }
-    await ctx.db.replace(cardId, {
+    await ctx.db.replace(cardId as Id<"cards">, {
       boardId: card.boardId,
       columnId,
       ownerId: card.ownerId,
@@ -123,14 +164,25 @@ export const move = mutation({
 
 // Deletes a card.
 export const remove = mutation({
-  args: { cardId: v.id("cards") },
+  args: {
+    cardId: v.id("cards"),
+    shareToken: v.optional(v.string()),
+  },
   returns: v.null(),
-  handler: async (ctx, { cardId }) => {
-    const ownerId = await ctx.auth.getUserId();
-    if (!ownerId) throw new Error("You must be signed in.");
+  handler: async (ctx, { cardId, shareToken }) => {
+    const userId = await ctx.auth.getUserId();
+    if (!userId) throw new Error("You must be signed in.");
     const card = await ctx.db.get(cardId);
-    if (!card || card.ownerId !== ownerId) return null;
-    await ctx.db.delete(cardId);
+    if (!card) return null;
+    if (typeof card.boardId !== "string") return null;
+    const board = await ctx.db.get(card.boardId);
+    let canEdit = board?.ownerId === userId;
+    if (!canEdit && shareToken) {
+      const [share] = await ctx.db.query("boardShares", "by_token").eq("token", shareToken).take(1).collect();
+      canEdit = Boolean(share && share.boardId === card.boardId && share.role === "editor");
+    }
+    if (!canEdit) return null;
+    await ctx.db.delete(cardId as Id<"cards">);
     return null;
   },
 });

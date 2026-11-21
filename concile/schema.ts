@@ -14,6 +14,7 @@ export default defineSchema({
   boardShares: defineTable({
     boardId: v.id("boards"),
     token: v.string(),
+    role: v.union(v.literal("viewer"), v.literal("editor")),
   })
     .index("by_board", ["boardId"])
     .index("by_token", ["token"]),
