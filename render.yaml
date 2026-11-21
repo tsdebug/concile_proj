@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: task-board
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm run serve
+    numInstances: 1
+    envVars:
+      - key: CONCILE_DATABASE_URL
+        sync: false
+      - key: CONCILE_ADMIN_KEY
+        sync: false
