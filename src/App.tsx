@@ -7,6 +7,7 @@ import {
   Eye,
   LayoutDashboard,
   LogOut,
+  Pencil,
   Share2,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -233,6 +234,7 @@ function OwnerWorkspace({ displayName }: { displayName: string }) {
 function SharedWorkspace({ token }: { token: string }) {
   const shared = useQuery(api.sharing.getBoard, { token })
 
+  const loading = shared === undefined
   const unavailable = shared === null
 
   return (
@@ -246,9 +248,13 @@ function SharedWorkspace({ token }: { token: string }) {
       }
       eyebrow={shared ? `${shared.ownerName}’s board` : "Shared workspace"}
       description={
-        unavailable
+        loading
+          ? "Loading the board and its sharing permissions."
+          : unavailable
           ? "The link may be invalid, disabled, or replaced."
-          : "You’re viewing a shared board. Changes are managed by its owner."
+          : shared.role === "editor"
+            ? "You can add, edit, move, and delete cards and columns."
+            : "You’re viewing a shared board. Changes are managed by people with edit access."
       }
       ready={Boolean(shared)}
       actions={
@@ -258,8 +264,12 @@ function SharedWorkspace({ token }: { token: string }) {
               variant="outline"
               className="h-9 gap-1.5 rounded-xl bg-background/60 px-3"
             >
-              <Eye className="size-3.5" aria-hidden="true" />
-              View only
+              {shared.role === "editor" ? (
+                <Pencil className="size-3.5" aria-hidden="true" />
+              ) : (
+                <Eye className="size-3.5" aria-hidden="true" />
+              )}
+              {shared.role === "editor" ? "Editor" : "View only"}
             </Badge>
           )}
 
@@ -293,10 +303,14 @@ function SharedWorkspace({ token }: { token: string }) {
           </div>
         </div>
       ) : (
-        <SharedBoard
-          columns={shared.columns}
-          cards={shared.cards}
-        />
+        shared.role === "editor" ? (
+          <Board boardId={shared.boardId} shareToken={token} />
+        ) : (
+          <SharedBoard
+            columns={shared.columns}
+            cards={shared.cards}
+          />
+        )
       )}
     </WorkspaceLayout>
   )

@@ -317,9 +317,16 @@ function ColumnDropZone({
   )
 }
 
-export function Board({ boardId }: { boardId: Id<"boards"> }) {
-  const columns = useQuery(api.columns.list, { boardId })
-  const cards = useQuery(api.cards.list, { boardId })
+export function Board({
+  boardId,
+  shareToken,
+}: {
+  boardId: Id<"boards">
+  shareToken?: string
+}) {
+  const shareArgs = shareToken ? { shareToken } : {}
+  const columns = useQuery(api.columns.list, { boardId, ...shareArgs })
+  const cards = useQuery(api.cards.list, { boardId, ...shareArgs })
 
   const moveCard = useMutation(api.cards.move)
   const moveColumn = useMutation(api.columns.move)
@@ -440,6 +447,7 @@ export function Board({ boardId }: { boardId: Id<"boards"> }) {
         await moveColumn({
           columnId: movedColumn._id,
           position: getNewPosition(reordered, movedColumn._id),
+          ...shareArgs,
         })
 
         return
@@ -532,6 +540,7 @@ export function Board({ boardId }: { boardId: Id<"boards"> }) {
           reorderedCards,
           movedCard._id,
         ),
+        ...shareArgs,
       })
     } catch (error) {
       toast.error(errorMessage(error))
@@ -555,6 +564,7 @@ export function Board({ boardId }: { boardId: Id<"boards"> }) {
           await createColumn({
             boardId,
             name: title.trim(),
+            ...shareArgs,
           })
           break
 
@@ -562,6 +572,7 @@ export function Board({ boardId }: { boardId: Id<"boards"> }) {
           await renameColumn({
             columnId: editor.columnId,
             name: title.trim(),
+            ...shareArgs,
           })
           break
 
@@ -571,6 +582,7 @@ export function Board({ boardId }: { boardId: Id<"boards"> }) {
             columnId: editor.columnId,
             title: title.trim(),
             description: description.trim(),
+            ...shareArgs,
           })
           break
 
@@ -579,6 +591,7 @@ export function Board({ boardId }: { boardId: Id<"boards"> }) {
             cardId: editor.cardId,
             title: title.trim(),
             description: description.trim(),
+            ...shareArgs,
           })
           break
       }
@@ -602,10 +615,12 @@ export function Board({ boardId }: { boardId: Id<"boards"> }) {
       if (deleteTarget.kind === "column") {
         await removeColumn({
           columnId: deleteTarget.columnId,
+          ...shareArgs,
         })
       } else {
         await removeCard({
           cardId: deleteTarget.cardId,
+          ...shareArgs,
         })
       }
 
