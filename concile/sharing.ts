@@ -1,5 +1,6 @@
 import { v } from "@concile/values"
 import { mutation, query } from "./_generated/server"
+import type { Id } from "./_generated/dataModel"
 
 const sharedColumnShape = v.object({
   _id: v.id("columns"),
@@ -22,6 +23,7 @@ export const getMine = query({
   returns: v.union(
     v.object({
       token: v.string(),
+      role: v.union(v.literal("viewer"), v.literal("editor")),
     }),
     v.null(),
   ),
@@ -48,6 +50,10 @@ export const getMine = query({
 
     return {
       token: share.token,
+      role:
+        share.role === "editor" || share.role === "viewer"
+          ? share.role
+          : "viewer",
     }
   },
 })
@@ -57,9 +63,10 @@ export const enable = mutation({
     boardId: v.id("boards"),
     token: v.string(),
     replace: v.boolean(),
+    role: v.union(v.literal("viewer"), v.literal("editor")),
   },
   returns: v.string(),
-  handler: async (ctx, { boardId, token, replace }) => {
+  handler: async (ctx, { boardId, token, replace, role }) => {
     const userId = await ctx.auth.getUserId()
 
     if (!userId) {
@@ -87,6 +94,12 @@ export const enable = mutation({
         throw new Error("The existing share link is invalid.")
       }
 
+      await ctx.db.replace(existing._id as Id<"boardShares">, {
+        boardId,
+        token: existing.token,
+        role,
+      })
+
       return existing.token
     }
 
@@ -110,11 +123,13 @@ export const enable = mutation({
       await ctx.db.replace(shareId, {
         boardId,
         token,
+        role,
       })
     } else {
       await ctx.db.insert("boardShares", {
         boardId,
         token,
+        role,
       })
     }
 
@@ -165,8 +180,10 @@ export const getBoard = query({
   },
   returns: v.union(
     v.object({
+      boardId: v.id("boards"),
       name: v.string(),
       ownerName: v.string(),
+      role: v.union(v.literal("viewer"), v.literal("editor")),
       columns: v.array(sharedColumnShape),
       cards: v.array(sharedCardShape),
     }),
@@ -217,11 +234,16 @@ export const getBoard = query({
       .collect()
 
     return {
+      boardId,
       name: board.name,
       ownerName:
         profile && typeof profile.displayName === "string"
           ? profile.displayName
           : "A Concile user",
+      role:
+        share.role === "editor" || share.role === "viewer"
+          ? share.role
+          : "viewer",
       columns: columns.map((column) => ({
         _id: column._id,
         name: column.name,
