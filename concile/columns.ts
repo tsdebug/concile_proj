@@ -2,6 +2,37 @@ import { v } from "@concile/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
+async function getDisplayName(ctx: any, userId: string) {
+    const [profile] = await ctx.db
+        .query("profiles", "by_user")
+        .eq("userId", userId)
+        .take(1)
+        .collect();
+    return profile && typeof profile.displayName === "string"
+        ? profile.displayName
+        : "A Concile user";
+}
+
+async function logActivity(
+    ctx: any,
+    boardId: Id<"boards">,
+    userId: string,
+    action: "created" | "edited" | "moved" | "deleted",
+    entityName: string,
+    summary: string,
+) {
+    await ctx.db.insert("boardActivity", {
+        boardId,
+        userId,
+        displayName: await getDisplayName(ctx, userId),
+        action,
+        entityType: "column",
+        entityName,
+        summary,
+        createdAt: Date.now(),
+    });
+}
+
 const columnShape = v.object({
     _id: v.id("columns"),
     _creationTime: v.number(),
@@ -28,7 +59,19 @@ export const list = query({
             const [share] = await ctx.db.query("boardShares", "by_token").eq("token", shareToken).take(1).collect();
             if (!share || share.boardId !== boardId) return [];
         }
-        return ctx.db.query("columns", "by_board_position").eq("boardId", boardId).collect();
+        const columns = await ctx.db
+            .query("columns", "by_board_position")
+            .eq("boardId", boardId)
+            .collect();
+        if (board.ownerId === userId) return columns;
+        return columns.map((column) => ({
+            _id: column._id,
+            _creationTime: column._creationTime,
+            boardId: column.boardId,
+            ownerId: column.ownerId,
+            name: column.name,
+            position: column.position,
+        }));
     },
 });
 
@@ -56,12 +99,14 @@ export const create = mutation({
         }
 
         if (position !== undefined) {
-            return ctx.db.insert("columns", {
+            const columnId = await ctx.db.insert("columns", {
                 boardId,
                 ownerId: userId,
                 name,
                 position,
             });
+            await logActivity(ctx, boardId, userId, "created", name, `Created column “${name}”`);
+            return columnId;
         }
 
         const lastColumns = await ctx.db
@@ -78,12 +123,14 @@ export const create = mutation({
 
         const nextPosition = lastPosition !== null ? lastPosition + 1024 : 1024;
         
-        return ctx.db.insert("columns", {
+        const columnId = await ctx.db.insert("columns", {
             boardId,
             ownerId: userId,
             name,
             position: nextPosition,
         });
+        await logActivity(ctx, boardId, userId, "created", name, `Created column “${name}”`);
+        return columnId;
     },
 });
 
@@ -115,6 +162,10 @@ export const rename = mutation({
             name,
             position: column.position,
         });
+        const summary = column.name === name
+            ? `Opened column “${name}” without changes`
+            : `Renamed column “${column.name}” to “${name}”`;
+        await logActivity(ctx, column.boardId, userId, "edited", name, summary);
         return null;
     },
 });
@@ -140,11 +191,23 @@ export const remove = mutation({
         }
         if (!canEdit) return null;
 
+        await logActivity(ctx, column.boardId, userId, "deleted", column.name, `Deleted column “${column.name}” and its cards`);
         const cards = await ctx.db
             .query("cards", "by_column_position")
             .eq("columnId", columnId as Id<"columns">)
             .collect();
+        const displayName = await getDisplayName(ctx, userId);
         for (const card of cards) {
+            await ctx.db.insert("boardActivity", {
+                boardId: column.boardId,
+                userId,
+                displayName,
+                action: "deleted",
+                entityType: "card",
+                entityName: card.title,
+                summary: `Deleted card “${card.title}” with column “${column.name}”`,
+                createdAt: Date.now(),
+            });
             await ctx.db.delete(card._id as Id<"cards">);
         }
         await ctx.db.delete(columnId as Id<"columns">);
@@ -192,6 +255,7 @@ export const move = mutation({
       name: column.name,
       position,
     })
+    await logActivity(ctx, column.boardId, userId, "moved", column.name, `Moved column “${column.name}”`)
 
     return null
   },

@@ -13,6 +13,9 @@ export type FunctionReference<
 };
 
 export type Internal = {
+  "activity": {
+
+  };
   "boards": {
 
   };
@@ -23,6 +26,9 @@ export type Internal = {
 
   };
   "messages": {
+
+  };
+  "presence": {
 
   };
   "profiles": {

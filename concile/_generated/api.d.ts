@@ -13,6 +13,9 @@ export type FunctionReference<
 };
 
 export type Api = {
+  "activity": {
+    list: FunctionReference<"query", "public", { boardId: Id<"boards"> }, Array<{ _id: Id<"boardActivity">; displayName: string; action: ("created" | "edited" | "moved" | "deleted"); entityType: ("card" | "column"); entityName: string; summary?: string; createdAt: number }>>;
+  };
   "boards": {
     ensureDefault: FunctionReference<"mutation", "public", {}, Id<"boards">>;
     getMine: FunctionReference<"query", "public", {}, ({ _id: Id<"boards">; _creationTime: number; ownerId: string; name: string } | null)>;
@@ -35,6 +38,12 @@ export type Api = {
     list: FunctionReference<"query", "public", any, any>;
     send: FunctionReference<"mutation", "public", { author: string; body: string }, any>;
   };
+  "presence": {
+    heartbeat: FunctionReference<"mutation", "public", { boardId: Id<"boards">; shareToken?: string }, null>;
+    join: FunctionReference<"mutation", "public", { boardId: Id<"boards">; shareToken?: string }, null>;
+    leave: FunctionReference<"mutation", "public", { boardId: Id<"boards"> }, null>;
+    list: FunctionReference<"query", "public", { boardId: Id<"boards">; shareToken?: string }, Array<{ userId: string; displayName: string; role: ("owner" | "editor" | "viewer") }>>;
+  };
   "profiles": {
     getMine: FunctionReference<"query", "public", {}, ({ displayName: string } | null)>;
     save: FunctionReference<"mutation", "public", { displayName: string }, null>;
@@ -45,7 +54,7 @@ export type Api = {
   "sharing": {
     disable: FunctionReference<"mutation", "public", { boardId: Id<"boards"> }, null>;
     enable: FunctionReference<"mutation", "public", { boardId: Id<"boards">; token: string; replace: boolean; role: ("viewer" | "editor") }, string>;
-    getBoard: FunctionReference<"query", "public", { token: string }, ({ boardId: Id<"boards">; name: string; ownerName: string; role: ("viewer" | "editor"); columns: Array<{ _id: Id<"columns">; name: string; position: number }>; cards: Array<{ _id: Id<"cards">; columnId: Id<"columns">; title: string; description: string; position: number }> } | null)>;
+    getBoard: FunctionReference<"query", "public", { token: string }, ({ boardId: Id<"boards">; name: string; ownerName: string; role: ("viewer" | "editor"); columns: Array<{ _id: Id<"columns">; name: string; position: number; ownerId: string }>; cards: Array<{ _id: Id<"cards">; columnId: Id<"columns">; title: string; description: string; position: number; ownerId: string }> } | null)>;
     getMine: FunctionReference<"query", "public", { boardId: Id<"boards"> }, ({ token: string; role: ("viewer" | "editor") } | null)>;
   };
 };

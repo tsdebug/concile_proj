@@ -2,6 +2,37 @@ import { v } from "@concile/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
+async function getDisplayName(ctx: any, userId: string) {
+  const [profile] = await ctx.db
+    .query("profiles", "by_user")
+    .eq("userId", userId)
+    .take(1)
+    .collect();
+  return profile && typeof profile.displayName === "string"
+    ? profile.displayName
+    : "A Concile user";
+}
+
+async function logActivity(
+  ctx: any,
+  boardId: Id<"boards">,
+  userId: string,
+  action: "created" | "edited" | "moved" | "deleted",
+  entityName: string,
+  summary: string,
+) {
+  await ctx.db.insert("boardActivity", {
+    boardId,
+    userId,
+    displayName: await getDisplayName(ctx, userId),
+    action,
+    entityType: "card",
+    entityName,
+    summary,
+    createdAt: Date.now(),
+  });
+}
+
 const cardShape = v.object({
   _id: v.id("cards"),
   _creationTime: v.number(),
@@ -30,7 +61,21 @@ export const list = query({
       const [share] = await ctx.db.query("boardShares", "by_token").eq("token", shareToken).take(1).collect();
       if (!share || share.boardId !== boardId) return [];
     }
-    return ctx.db.query("cards", "by_board_position").eq("boardId", boardId).collect();
+    const cards = await ctx.db
+      .query("cards", "by_board_position")
+      .eq("boardId", boardId)
+      .collect();
+    if (board.ownerId === userId) return cards;
+    return cards.map((card) => ({
+      _id: card._id,
+      _creationTime: card._creationTime,
+      boardId: card.boardId,
+      columnId: card.columnId,
+      ownerId: card.ownerId,
+      title: card.title,
+      description: card.description,
+      position: card.position,
+    }));
   },
 });
 
@@ -78,7 +123,7 @@ export const create = mutation({
         finalPosition = last.position + 1024;
       }
     }
-    return ctx.db.insert("cards", {
+    const cardId = await ctx.db.insert("cards", {
       boardId,
       columnId,
       ownerId: userId,
@@ -86,6 +131,8 @@ export const create = mutation({
       description: description ?? "",
       position: finalPosition,
     });
+    await logActivity(ctx, boardId, userId, "created", title, `Created card “${title}” in “${column.name}”`);
+    return cardId;
   },
 });
 
@@ -119,6 +166,13 @@ export const update = mutation({
       description,
       position: card.position,
     });
+    const changes: string[] = [];
+    if (card.title !== title) changes.push(`title from “${card.title}” to “${title}”`);
+    if (card.description !== description) changes.push("description");
+    const summary = changes.length
+      ? `Edited card “${title}”: changed ${changes.join(" and ")}`
+      : `Opened card “${title}” without changes`;
+    await logActivity(ctx, card.boardId, userId, "edited", title, summary);
     return null;
   },
 });
@@ -150,6 +204,9 @@ export const move = mutation({
     ) {
       return null; // card or column vanished or isn't yours: do nothing
     }
+    const sourceColumn = await ctx.db.get(card.columnId);
+    const sourceName = sourceColumn?.name ?? "an unknown column";
+    const targetName = column.name;
     await ctx.db.replace(cardId as Id<"cards">, {
       boardId: card.boardId,
       columnId,
@@ -158,6 +215,14 @@ export const move = mutation({
       description: card.description,
       position,
     });
+    await logActivity(
+      ctx,
+      card.boardId,
+      userId,
+      "moved",
+      card.title,
+      `Moved card “${card.title}” from “${sourceName}” to “${targetName}”`,
+    );
     return null;
   },
 });
@@ -182,6 +247,7 @@ export const remove = mutation({
       canEdit = Boolean(share && share.boardId === card.boardId && share.role === "editor");
     }
     if (!canEdit) return null;
+    await logActivity(ctx, card.boardId, userId, "deleted", card.title, `Deleted card “${card.title}”`);
     await ctx.db.delete(cardId as Id<"cards">);
     return null;
   },
