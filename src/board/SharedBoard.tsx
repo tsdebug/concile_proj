@@ -1,6 +1,7 @@
 import type { Id } from "../../concile/_generated/dataModel"
 
 import { cn } from "@/lib/utils"
+import { BoardPresence } from "@/board/BoardPresence"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -17,6 +18,7 @@ type SharedColumn = {
   _id: Id<"columns">
   name: string
   position: number
+  ownerId: string
 }
 
 type SharedCard = {
@@ -25,6 +27,7 @@ type SharedCard = {
   title: string
   description: string
   position: number
+  ownerId: string
 }
 
 const accents = [
@@ -51,9 +54,13 @@ function getAccent(name: string, index: number) {
 export function SharedBoard({
   columns,
   cards,
+  boardId,
+  shareToken,
 }: {
   columns: SharedColumn[]
   cards: SharedCard[]
+  boardId: Id<"boards">
+  shareToken: string
 }) {
   const sortedColumns = [...columns].sort(
     (a, b) => a.position - b.position,
@@ -69,10 +76,12 @@ export function SharedBoard({
 
   return (
     <>
-      <p className="mb-3 text-xs text-muted-foreground">
-        A little look at what’s in progress. This board is view only.
-      </p>
-
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          A little look at what’s in progress. This board is view only.
+        </p>
+        <BoardPresence boardId={boardId} shareToken={shareToken} />
+      </div>
       <ScrollArea className="w-full min-w-0">
         <div className="flex items-start gap-5 px-0.5 pb-5 pt-1">
           {sortedColumns.map((column, index) => {

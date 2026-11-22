@@ -6,6 +6,7 @@ const sharedColumnShape = v.object({
   _id: v.id("columns"),
   name: v.string(),
   position: v.number(),
+  ownerId: v.string(),
 })
 
 const sharedCardShape = v.object({
@@ -14,6 +15,7 @@ const sharedCardShape = v.object({
   title: v.string(),
   description: v.string(),
   position: v.number(),
+  ownerId: v.string(),
 })
 
 export const getMine = query({
@@ -248,6 +250,7 @@ export const getBoard = query({
         _id: column._id,
         name: column.name,
         position: column.position,
+        ownerId: column.ownerId,
       })),
       cards: cards.map((card) => ({
         _id: card._id,
@@ -255,6 +258,7 @@ export const getBoard = query({
         title: card.title,
         description: card.description,
         position: card.position,
+        ownerId: card.ownerId,
       })),
     }
   },
