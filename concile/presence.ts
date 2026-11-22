@@ -124,19 +124,8 @@ export const leave = mutation({
     boardId: v.id("boards"),
   },
   returns: v.null(),
-  handler: async (ctx, { boardId }) => {
-    const userId = await ctx.auth.getUserId()
-    if (!userId) return null
-
-    const presence = await ctx.db
-      .query("boardPresence", "by_board_user")
-      .eq("boardId", boardId)
-      .eq("userId", userId)
-      .collect()
-
-    for (const record of presence) {
-      await ctx.db.delete(record._id as Id<"boardPresence">)
-    }
+  handler: async () => {
+    // Presence is shared across tabs/views for a user and expires when heartbeats stop.
     return null
   },
 })

@@ -68,9 +68,14 @@ export function SharedBoard({
 
   if (sortedColumns.length === 0) {
     return (
-      <div className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">
-        This board doesn’t have any columns yet.
-      </div>
+      <>
+        <div className="mb-3 flex items-center justify-end gap-3">
+          <BoardPresence boardId={boardId} shareToken={shareToken} />
+        </div>
+        <div className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">
+          This board doesn’t have any columns yet.
+        </div>
+      </>
     )
   }
 

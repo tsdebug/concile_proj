@@ -24,7 +24,6 @@ export function BoardPresence({
   const args = shareToken ? { boardId, shareToken } : { boardId }
   const join = useMutation(api.presence.join)
   const heartbeat = useMutation(api.presence.heartbeat)
-  const leave = useMutation(api.presence.leave)
   const presence = useQuery(api.presence.list, args)
 
   useEffect(() => {
@@ -45,9 +44,8 @@ export function BoardPresence({
     return () => {
       window.clearInterval(interval)
       document.removeEventListener("visibilitychange", handleVisibility)
-      void leave({ boardId })
     }
-  }, [boardId, shareToken, join, heartbeat, leave])
+  }, [boardId, shareToken, join, heartbeat])
 
   if (!presence || presence.length === 0) return null
 
