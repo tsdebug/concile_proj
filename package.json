@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "concile dev --run vite --no-ui",
-    "build": "vite build",
-    "serve": "concile serve --dir concile --web dist"
+    "build": "vite build"
   },
   "dependencies": {
     "@concile/auth": "^0.2.2",

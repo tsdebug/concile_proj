@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { BoardPresence } from "@/board/BoardPresence"
 
 type ColumnItem = {
   _id: Id<"columns">
@@ -675,14 +676,16 @@ export function Board({
         <p className="text-xs text-muted-foreground">
           Use the grip handles to move columns and cards.
         </p>
-
-        <span
-          role="status"
-          aria-live="polite"
-          className="text-xs text-muted-foreground"
-        >
-          {busy ? "Saving..." : ""}
-        </span>
+        <div className="flex items-center gap-3">
+          <span
+            role="status"
+            aria-live="polite"
+            className="text-xs text-muted-foreground"
+          >
+            {busy ? "Saving..." : ""}
+          </span>
+          <BoardPresence boardId={boardId} shareToken={shareToken} />
+        </div>
       </div>
 
       <DndContext

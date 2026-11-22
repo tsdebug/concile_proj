@@ -8,6 +8,8 @@ export interface DataModel {
   boardShares: { document: { _id: Id<"boardShares">; _creationTime: number; boardId: Id<"boards">; token: string; role: ("viewer" | "editor") } };
   columns: { document: { _id: Id<"columns">; _creationTime: number; boardId: Id<"boards">; ownerId: string; name: string; position: number } };
   cards: { document: { _id: Id<"cards">; _creationTime: number; boardId: Id<"boards">; columnId: Id<"columns">; ownerId: string; title: string; description: string; position: number } };
+  boardPresence: { document: { _id: Id<"boardPresence">; _creationTime: number; boardId: Id<"boards">; userId: string; displayName: string; role: ("owner" | "editor" | "viewer"); lastSeenAt: number } };
+  boardActivity: { document: { _id: Id<"boardActivity">; _creationTime: number; boardId: Id<"boards">; userId: string; displayName: string; action: ("created" | "edited" | "moved" | "deleted"); entityType: ("card" | "column"); entityName: string; summary?: string; createdAt: number } };
 }
 
 export type TableNames = keyof DataModel;

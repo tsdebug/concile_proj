@@ -14,11 +14,13 @@ import { toast } from "sonner"
 
 import { useAuth } from "@/auth/AuthProvider"
 import { Board } from "@/board/Board"
+import { BoardActivity } from "@/board/BoardActivity"
 import { ShareDialog } from "@/board/ShareDialog"
 import { SharedBoard } from "@/board/SharedBoard"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/concile"
+import { presenceColor } from "@/lib/avatar"
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -210,7 +212,10 @@ function OwnerWorkspace({ displayName }: { displayName: string }) {
         }
       >
         {board ? (
-          <Board boardId={board._id} />
+          <>
+            <BoardActivity boardId={board._id} />
+            <Board boardId={board._id} />
+          </>
         ) : (
           <div
             role="status"
@@ -309,6 +314,8 @@ function SharedWorkspace({ token }: { token: string }) {
           <SharedBoard
             columns={shared.columns}
             cards={shared.cards}
+            boardId={shared.boardId}
+            shareToken={token}
           />
         )
       )}
@@ -319,6 +326,7 @@ function SharedWorkspace({ token }: { token: string }) {
 export function App() {
   const { signOut } = useAuth()
   const profile = useQuery(api.profiles.getMine, {})
+  const userId = useQuery(api.session.whoami, {})
   const hash = useLocationHash()
 
   const sharedRoute = hash.startsWith("#/share/")
@@ -352,7 +360,7 @@ export function App() {
             <div className="flex min-w-0 items-center gap-2">
               <div
                 aria-hidden="true"
-                className="workspace-brand-mark flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
+                className={`workspace-brand-mark flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${presenceColor(userId ?? "anonymous")}`}
               >
                 {getInitials(displayName)}
               </div>
